@@ -1,0 +1,42 @@
+name: Documentation
+
+on:
+  push:
+    branches:
+      - main
+      - 'release-'
+    tags: '*'
+  pull_request:
+
+# Prevent simultaneous gh-pages deployments (tag + branch race condition).
+# PR previews each get their own group and cancel on new pushes.
+# All other deploys (main, tags) share one group and queue instead of cancel.
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('docs-pr-{0}', github.event.pull_request.number) || 'docs-deploy' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1.6'
+      - name: Install dependencies
+        run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+
+      - name: Set DOCUMENTER_CURRENT_VERSION for tutorial download links
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "DOCUMENTER_CURRENT_VERSION=previews/PR${{ github.event.pull_request.number }}" >> "$GITHUB_ENV"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "DOCUMENTER_CURRENT_VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" =~ ^refs/heads/release- ]]; then
+            echo "DOCUMENTER_CURRENT_VERSION=dev" >> "$GITHUB_ENV"
+          fi
+      - name: Build and deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+        run: julia --project=docs --color=yes docs/make.jl
