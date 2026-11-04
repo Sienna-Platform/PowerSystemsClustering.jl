@@ -1,4 +1,4 @@
-module SiennaTemplate
+module PowerSystemsClustering
 using DocStringExtensions
 
 @template (FUNCTIONS, METHODS) = """

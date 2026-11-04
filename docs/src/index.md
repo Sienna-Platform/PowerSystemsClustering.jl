@@ -1,16 +1,19 @@
-# SiennaTemplate.jl
+# PowerSystemsClustering.jl
 
 ```@meta
-CurrentModule = SiennaTemplate
+CurrentModule = PowerSystemsClustering
 ```
 
 ## Overview
 
-`SiennaTemplate.jl` is a [`Julia`](http://www.julialang.org) package that provides blah blah
+`PowerSystemsClustering.jl` is a [`Julia`](http://www.julialang.org) package that reduces a
+PowerSystems.jl `System` into a PowerSystemsInvestmentsPortfolios.jl `Portfolio` for capacity
+expansion modeling: it selects representative periods for time sampling and aggregates
+individual units into representative technologies.
 
 ## About Sienna
 
-`SiennaTemplate` is part of the National Laboratory of the Rockies (formerly known as NREL)'s
+`PowerSystemsClustering` is part of the National Laboratory of the Rockies (formerly known as NREL)'s
 [Sienna ecosystem](https://sienna-platform.github.io/Sienna/), an open source framework for
 scheduling problems and dynamic simulations for power systems. The Sienna ecosystem can be
 [found on github](https://github.com/Sienna-Platform). It contains three applications:
@@ -29,6 +32,6 @@ programming language.
 ## Installation and Quick Links
 
   - [Sienna installation page](https://sienna-platform.github.io/Sienna/SiennaDocs/docs/build/how-to/install/):
-    Instructions to install `SiennaTemplate.jl` and other Sienna packages
+    Instructions to install `PowerSystemsClustering.jl` and other Sienna packages
   - [Sienna Documentation Hub](https://sienna-platform.github.io/Sienna/SiennaDocs/docs/build/index.html):
     Links to other Sienna packages' documentation
