@@ -40,5 +40,6 @@ include("portfolio/technologies.jl")
 include("portfolio/thermal.jl")
 include("portfolio/renewable.jl")
 include("portfolio/hydro.jl")
+include("portfolio/storage.jl")
 
 end

@@ -64,14 +64,14 @@ end
 _input_output_curve(curve::IS.InputOutputCurve) = curve
 _input_output_curve(curve::IS.ValueCurve) = IS.InputOutputCurve(curve)
 
-# Linear version of a generator's variable cost curve, keeping its kind, fuel price and VOM. A
+# Linear version of a device's variable cost curve, keeping its kind, fuel price and VOM. A
 # fixed cost per hour online is added to a cost curve; it cannot be added to a fuel curve.
 function _linear_variable_cost(
     curve::IS.CostCurve{<:IS.ValueCurve, PSY.NaturalUnit},
     linearization::CurveLinearization,
     limits::PSY.MinMax,
     fixed::Float64,
-    ::PSY.Generator,
+    ::PSY.StaticInjection,
 )
     linear =
         linearize(IS.get_value_curve(curve), linearization, limits; online_cost = fixed)
@@ -83,7 +83,7 @@ function _linear_variable_cost(
     linearization::CurveLinearization,
     limits::PSY.MinMax,
     fixed::Float64,
-    device::PSY.Generator,
+    device::PSY.StaticInjection,
 )
     name = PSY.get_name(device)
     if !iszero(fixed)
@@ -109,7 +109,7 @@ function _linear_variable_cost(
     ::CurveLinearization,
     ::PSY.MinMax,
     ::Float64,
-    device::PSY.Generator,
+    device::PSY.StaticInjection,
 )
     throw(
         ArgumentError(

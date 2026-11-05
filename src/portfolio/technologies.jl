@@ -17,23 +17,32 @@ function add_existing_technology!(
     return technology
 end
 
-# Fields every existing generator technology shares: identity, region, and a capacity equal to
-# the device's maximum active power, so the technology is the existing unit with no new builds.
-function _existing_generator_fields(
+# Fields every existing technology shares: identity, region and financial data.
+function _existing_device_fields(
     device::T,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
     financial_data::PSIP.TechnologyFinancialData,
-) where {T <: PSY.Generator}
+) where {T <: PSY.StaticInjection}
     return (
         name = PSY.get_name(device),
         power_systems_type = string(nameof(T)),
         region = PSY.Topology[get_device_region(aggregation, device)],
         available = PSY.get_available(device),
         prime_mover_type = PSY.get_prime_mover_type(device),
-        capacity_limits = (min = 0.0, max = PSY.get_max_active_power(device, u"MW")),
         financial_data = financial_data,
     )
 end
+
+# Shared fields of an existing generator technology, with a capacity equal to the device's
+# maximum active power, so the technology is the existing unit with no new builds.
+_existing_generator_fields(
+    device::PSY.Generator,
+    aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
+    financial_data::PSIP.TechnologyFinancialData,
+) = (
+    _existing_device_fields(device, aggregation, financial_data)...,
+    capacity_limits = (min = 0.0, max = PSY.get_max_active_power(device, u"MW")),
+)
 
 # Operating limits of a generator with active power limits: minimum generation as a fraction of
 # maximum output, ramp limits as fractions of it per hour (`(1.0, 1.0)` if none), and minimum up
