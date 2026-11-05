@@ -5,8 +5,7 @@ aggregation level `aggregation`.
 Charge, discharge and energy capacities are the device's maximum input and output active power
 and its storage capacity (MWh), so the technology is the existing unit with no new builds. The
 minimum discharge is a fraction of the maximum output, self-discharge per minute becomes losses
-per hour, and the charge and discharge cost curves are linearized at maximum power. The
-`fixed` cost is not carried over (PSIN reads it as fixed O&M).
+per hour, and costs come from [`storage_operation_costs`](@ref).
 """
 function make_technology(
     device::PSY.EnergyReservoirStorage,
@@ -29,13 +28,16 @@ function make_technology(
 end
 
 """
-Charge and discharge costs of the storage unit `device` as PSIN reads them: each cost curve
-linearized at maximum input or output power.
+Operating costs of the storage unit `device`: the charge and discharge cost curves linearized
+at maximum input or output power, start-up and shut-down costs per MW of maximum output, and
+the energy shortage and surplus costs. `fixed` is zero, because PSIN reads that field as fixed
+O&M.
 
 Throws `ArgumentError` for curves not in MW.
 """
 function storage_operation_costs(device::PSY.EnergyReservoirStorage)
     op_cost = PSY.get_operation_cost(device)
+    max_output_mw = PSY.get_output_active_power_limits(device, u"MW").max
     linear(curve, limits) =
         _linear_variable_cost(
             curve,
@@ -53,5 +55,13 @@ function storage_operation_costs(device::PSY.EnergyReservoirStorage)
             PSY.get_discharge_variable_cost(op_cost),
             PSY.get_output_active_power_limits(device, u"MW"),
         ),
+        start_up = _per_mw(PSY.get_start_up(op_cost), max_output_mw),
+        shut_down = PSY.get_shut_down(op_cost) / max_output_mw,
+        energy_shortage_cost = PSY.get_energy_shortage_cost(op_cost),
+        energy_surplus_cost = PSY.get_energy_surplus_cost(op_cost),
     )
 end
+
+# A start-up cost, single or per operation mode (charge, discharge), per MW.
+_per_mw(cost::Float64, mw::Float64) = cost / mw
+_per_mw(cost::PSY.STORAGE_OPERATION_MODES, mw::Float64) = map(c -> c / mw, cost)

@@ -34,3 +34,28 @@ end
     @test PSIP.get_capacity_limits_discharge(technology, IS.NU).max == 50.0
     @test PSIP.get_capacity_limits_energy(technology, IS.NU).max == 150.0
 end
+
+@testset "Storage operating costs" begin
+    # c_sys5_bat (200 MW output) with start-up, shut-down, shortage and surplus costs set.
+    sys = build_system(PSITestSystems, "c_sys5_bat"; skip_serialization = true)
+    device = only(PSY.get_components(PSY.EnergyReservoirStorage, sys))
+    PSY.set_operation_cost!(
+        device,
+        PSY.StorageCost(;
+            discharge_variable_cost = IS.CostCurve(IS.LinearCurve(2.0)),
+            start_up = (charge = 40.0, discharge = 20.0),
+            shut_down = 10.0,
+            energy_shortage_cost = 500.0,
+            energy_surplus_cost = 5.0,
+        ),
+    )
+    costs = PSC.storage_operation_costs(device)
+    @test IS.get_proportional_term(
+        IS.get_value_curve(PSY.get_discharge_variable_cost(costs)),
+    ) ≈ 2.0
+    @test PSY.get_start_up(costs) == (charge = 0.2, discharge = 0.1)
+    @test PSY.get_shut_down(costs) ≈ 0.05
+    @test PSY.get_energy_shortage_cost(costs) == 500.0
+    @test PSY.get_energy_surplus_cost(costs) == 5.0
+    @test PSY.get_fixed(costs) == 0.0
+end

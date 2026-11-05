@@ -224,3 +224,30 @@ end
     end
     @test_throws ArgumentError PSC.thermal_operation_costs(steam, PSC.AverageRate(), :tepid)
 end
+
+@testset "Thermal start-up fuel" begin
+    sys = build_system(PSITestSystems, "c_sys5_re"; skip_serialization = true)
+    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
+    # Solitude (520 MW) with a fuel curve burning 52 MMBtu per start: 0.1 MMBtu per MW.
+    device = PSY.get_component(PSY.ThermalStandard, sys, "Solitude")
+    fuel_cost = PSY.ThermalGenerationCost(;
+        variable_operation_cost = IS.FuelCurve(
+            IS.LinearCurve(10.0),
+            PSIP.MMBtu,
+            3.0,
+            IS.LinearCurve(52.0),
+            IS.LinearCurve(0.0),
+        ),
+        fixed = 0.0,
+        start_up = 0.0,
+        shut_down = 0.0,
+    )
+    PSY.set_operation_cost!(device, fuel_cost)
+    technology = PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)
+    @test PSIP.get_start_fuel_mmbtu_per_mw(technology, IS.NU) ≈ 0.1
+    # Cost curves have no start-up fuel.
+    other = PSY.get_component(PSY.ThermalStandard, sys, "Brighton")
+    other_technology =
+        PSC.add_existing_technology!(portfolio, other, TECHNOLOGY_FINANCIAL_DATA)
+    @test PSIP.get_start_fuel_mmbtu_per_mw(other_technology, IS.NU) == 0.0
+end

@@ -11,6 +11,7 @@
         @test PSIP.get_prime_mover_type(technology) == PSY.get_prime_mover_type(device)
         @test PSIP.get_capacity_limits(technology, IS.NU) == (min = 0.0, max = max_mw)
         @test PSIP.get_existing_capacity_mw(portfolio, technology) == max_mw
+        @test technology.time_limits == (up = 0.0, down = 0.0)
         # c_sys5_re renewables cost 0.22 $/MWh.
         costs = PSIP.get_operation_costs(technology, IS.NU)
         curve = IS.get_value_curve(PSY.get_variable_operation_cost(costs))

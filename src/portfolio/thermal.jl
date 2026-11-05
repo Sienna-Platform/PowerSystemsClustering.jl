@@ -18,8 +18,17 @@ function make_technology(
         _operating_limits(device)...,
         fuel = [PSY.get_fuel(device)],
         operation_costs = thermal_operation_costs(device, linearization, start_up_stage),
+        start_fuel_mmbtu_per_mw = _start_fuel_per_mw(
+            PSY.get_variable_operation_cost(PSY.get_operation_cost(device)),
+            PSY.get_max_active_power(device, u"MW"),
+        ),
     )
 end
+
+# Start-up fuel per MW of maximum output; only fuel curves have start-up fuel.
+_start_fuel_per_mw(curve::IS.FuelCurve, max_mw::Float64) =
+    IS.get_proportional_term(IS.get_startup_fuel_offtake(curve)) / max_mw
+_start_fuel_per_mw(::IS.ProductionVariableCostCurve, ::Float64) = 0.0
 
 """
 Operating costs of the thermal unit `device` as PSIN reads them:
