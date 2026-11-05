@@ -1,6 +1,3 @@
-const FINANCIAL_DATA =
-    (base_year = 2025, discount_rate = 0.07, inflation_rate = 0.02, interest_rate = 0.05)
-
 @testset "Initialize a portfolio from a system" begin
     sys = build_system(PSITestSystems, "c_sys5_re"; skip_serialization = true)
     portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)

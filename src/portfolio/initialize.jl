@@ -1,19 +1,10 @@
 """
-Create an empty `PSIP.Portfolio` whose base system is `sys`.
+Create an empty `PSIP.Portfolio` with base system `sys` and regions at the aggregation level
+`aggregation` (`PSY.ACBus`, `PSY.LoadZone` or `PSY.Area`). PSIP reads the regions from the base
+system, which is referenced, not copied. The financial keywords are the portfolio data PSIN
+discounts costs with.
 
-Regions are not copied into the portfolio: PSIP reads them from the base system's topology
-components of type `aggregation` (`PSY.ACBus`, `PSY.LoadZone` or `PSY.Area`). The system is
-referenced, not copied.
-
-# Arguments
-
-  - `sys::PSY.System`: system holding the existing devices and their time series
-  - `aggregation`: topology type that defines the portfolio's regions
-  - `base_year::Int`: year that PSIN discounts costs to
-  - `discount_rate::Float64`, `inflation_rate::Float64`, `interest_rate::Float64`: portfolio
-    financial data used by PSIN
-
-Throws `ArgumentError` if `sys` has no components of type `aggregation`.
+Throws `ArgumentError` if `sys` has no `aggregation` components.
 """
 function initialize_portfolio(
     sys::PSY.System,
@@ -24,13 +15,7 @@ function initialize_portfolio(
     interest_rate::Float64,
 )
     if isempty(PSY.get_components(aggregation, sys))
-        throw(
-            ArgumentError(
-                "The system has no $(nameof(aggregation)) components, so it has no regions at " *
-                "that aggregation level. Choose another aggregation level or add " *
-                "$(nameof(aggregation)) components to the system.",
-            ),
-        )
+        throw(ArgumentError("The system has no $(nameof(aggregation)) components."))
     end
     return PSIP.Portfolio(
         aggregation,

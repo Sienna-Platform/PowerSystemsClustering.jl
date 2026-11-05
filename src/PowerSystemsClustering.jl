@@ -22,6 +22,8 @@ const PSY = PowerSystems
 const PSIP = PowerSystemsInvestmentsPortfolios
 const PSIN = PowerSystemsInvestments
 
+# Unit strings such as u"MW" for the psy6 unit-aware getters.
+using PowerSystems: @u_str
 using DocStringExtensions
 
 @template (FUNCTIONS, METHODS) = """
@@ -33,5 +35,8 @@ using DocStringExtensions
 
 include("portfolio/initialize.jl")
 include("portfolio/regions.jl")
+include("portfolio/cost_curves.jl")
+include("portfolio/technologies.jl")
+include("portfolio/thermal.jl")
 
 end

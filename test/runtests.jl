@@ -3,12 +3,15 @@ using Logging
 using Dates
 import InfrastructureSystems as IS
 import PowerSystems as PSY
+using PowerSystems: @u_str
 import PowerSystemsInvestmentsPortfolios as PSIP
 import PowerSystemsInvestments as PSIN
 using PowerSystemsClustering
 const PSC = PowerSystemsClustering
 using PowerSystemCaseBuilder
 import HiGHS
+
+include("test_utils/financial_data.jl")
 
 import Aqua
 Aqua.test_unbound_args(PowerSystemsClustering)
