@@ -2,13 +2,9 @@
 const ThermalDevice = Union{PSY.ThermalStandard, PSY.ThermalMultiStart}
 
 """
-Make a `PSIP.SupplyTechnology` for the thermal unit `device`, in its region at the aggregation
-level `aggregation`.
-
-Capacity is the device's maximum active power, so the technology is the existing unit with no
-new builds. Minimum generation is a fraction of that capacity, ramp limits are fractions of it
-per hour (`(1.0, 1.0)` if the device has none), and minimum up and down times are in minutes
-(`(0.0, 0.0)` if none). Costs come from [`thermal_operation_costs`](@ref).
+Make a `PSIP.SupplyTechnology` for the existing thermal unit `device`, in its region at the
+aggregation level `aggregation`, with its operating limits and the costs from
+[`thermal_operation_costs`](@ref).
 """
 function make_technology(
     device::T,
@@ -17,32 +13,13 @@ function make_technology(
     linearization::CurveLinearization = AverageRate(),
     start_up_stage::Symbol = :hot,
 ) where {T <: ThermalDevice}
-    limits = PSY.get_active_power_limits(device, u"MW")
     return PSIP.SupplyTechnology{T}(;
-        name = PSY.get_name(device),
-        power_systems_type = string(nameof(T)),
-        region = PSY.Topology[get_device_region(aggregation, device)],
-        available = PSY.get_available(device),
-        prime_mover_type = PSY.get_prime_mover_type(device),
+        _existing_generator_fields(device, aggregation, financial_data)...,
+        _operating_limits(device)...,
         fuel = [PSY.get_fuel(device)],
         operation_costs = thermal_operation_costs(device, linearization, start_up_stage),
-        capacity_limits = (min = 0.0, max = limits.max),
-        min_generation_fraction = limits.min / limits.max,
-        ramp_limits = _ramp_fraction_per_hour(
-            PSY.get_ramp_limits(device, u"MW/minute"),
-            limits.max,
-        ),
-        time_limits = _time_limits(PSY.get_time_limits(device)),
-        financial_data = financial_data,
     )
 end
-
-_ramp_fraction_per_hour(ramp::PSY.UpDown, max_mw::Float64) =
-    (up = 60.0 * ramp.up / max_mw, down = 60.0 * ramp.down / max_mw)
-_ramp_fraction_per_hour(::Nothing, ::Float64) = (up = 1.0, down = 1.0)
-
-_time_limits(time_limits::PSY.UpDown) = time_limits
-_time_limits(::Nothing) = (up = 0.0, down = 0.0)
 
 """
 Operating costs of the thermal unit `device` as PSIN reads them:

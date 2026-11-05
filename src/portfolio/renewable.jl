@@ -2,28 +2,19 @@
 const RenewableDevice = Union{PSY.RenewableDispatch, PSY.RenewableNonDispatch}
 
 """
-Make a `PSIP.SupplyTechnology` for the renewable unit `device`, in its region at the
-aggregation level `aggregation`.
-
-Capacity is the device's maximum active power (rating × power factor), so the technology is
-the existing unit with no new builds. Costs come from [`renewable_operation_costs`](@ref). The
-capacity factor profile is added to the technology with the representative periods.
+Make a `PSIP.SupplyTechnology` for the existing renewable unit `device`, in its region at the
+aggregation level `aggregation`, with the costs from [`renewable_operation_costs`](@ref).
+Capacity is the maximum active power (rating × power factor). The capacity factor profile is
+added with the representative periods.
 """
 function make_technology(
     device::T,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
     financial_data::PSIP.TechnologyFinancialData,
 ) where {T <: RenewableDevice}
-    max_mw = PSY.get_max_active_power(device, u"MW")
     return PSIP.SupplyTechnology{T}(;
-        name = PSY.get_name(device),
-        power_systems_type = string(nameof(T)),
-        region = PSY.Topology[get_device_region(aggregation, device)],
-        available = PSY.get_available(device),
-        prime_mover_type = PSY.get_prime_mover_type(device),
+        _existing_generator_fields(device, aggregation, financial_data)...,
         operation_costs = renewable_operation_costs(device),
-        capacity_limits = (min = 0.0, max = max_mw),
-        financial_data = financial_data,
     )
 end
 

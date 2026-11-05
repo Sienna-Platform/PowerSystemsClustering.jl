@@ -1,0 +1,67 @@
+"""
+Make a `PSIP.SupplyTechnology` for the existing hydro unit `device`, in its region at the
+aggregation level `aggregation`, with its operating limits and the costs from
+[`hydro_operation_costs`](@ref). The capacity factor profile or energy budget is added with
+the representative periods.
+"""
+function make_technology(
+    device::PSY.HydroDispatch,
+    aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
+    financial_data::PSIP.TechnologyFinancialData,
+)
+    return PSIP.SupplyTechnology{PSY.HydroDispatch}(;
+        _existing_generator_fields(device, aggregation, financial_data)...,
+        _operating_limits(device)...,
+        operation_costs = hydro_operation_costs(device),
+    )
+end
+
+"""
+Operating costs of the hydro unit `device` as PSIN reads them: the cost or fuel curve
+linearized at maximum output, with PowerSystems' `fixed` cost (per hour online) added to a cost
+curve. A fuel curve is priced into a cost curve (heat rate × fuel price), since hydro burns no
+fuel and PSIP converts fuel curves only in thermal costs.
+
+Throws `ArgumentError` for curves not in MW, time series fuel prices, and a nonzero `fixed`
+cost with a fuel curve.
+"""
+function hydro_operation_costs(device::PSY.HydroDispatch)
+    op_cost = PSY.get_operation_cost(device)
+    variable_cost = _linear_variable_cost(
+        PSY.get_variable_operation_cost(op_cost),
+        AverageRate(),
+        PSY.get_active_power_limits(device, u"MW"),
+        PSY.get_fixed(op_cost),
+        device,
+    )
+    return PSY.HydroGenerationCost(;
+        variable_operation_cost = _priced_cost_curve(variable_cost),
+        fixed = 0.0,
+    )
+end
+
+_priced_cost_curve(curve::IS.CostCurve) = curve
+
+function _priced_cost_curve(curve::IS.FuelCurve)
+    fuel_curve = IS.get_value_curve(curve)
+    fuel_price = IS.get_fuel_cost(curve)
+    priced = IS.LinearCurve(
+        IS.get_proportional_term(fuel_curve) * fuel_price,
+        IS.get_constant_term(fuel_curve) * fuel_price,
+    )
+    return IS.CostCurve(priced, PSY.NaturalUnit(), IS.get_vom_cost(curve))
+end
+
+"""
+Skip a `HydroTurbine` or `HydroReservoir` with a warning: PSIN has no formulation for them yet.
+Returns `nothing`.
+"""
+function add_existing_technology!(
+    ::PSIP.Portfolio,
+    device::Union{PSY.HydroTurbine, PSY.HydroReservoir},
+    ::PSIP.TechnologyFinancialData;
+    kwargs...,
+)
+    @warn "Skipping $(nameof(typeof(device))) $(PSY.get_name(device)): PSIN does not model hydro turbines and reservoirs yet."
+    return
+end

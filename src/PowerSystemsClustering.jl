@@ -39,5 +39,6 @@ include("portfolio/cost_curves.jl")
 include("portfolio/technologies.jl")
 include("portfolio/thermal.jl")
 include("portfolio/renewable.jl")
+include("portfolio/hydro.jl")
 
 end
