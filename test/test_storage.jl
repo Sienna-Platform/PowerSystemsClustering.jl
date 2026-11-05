@@ -11,6 +11,8 @@
     @test PSIP.get_region(technology) == [PSY.get_bus(device)]
     @test PSIP.get_storage_tech(technology) == PSY.get_storage_technology_type(device)
     @test !PSIP.is_new(technology)
+    @test PSIP.get_existing_capacity_mw(portfolio, technology) == 200.0
+    @test PSIP.get_existing_capacity_mwh(portfolio, technology) == 400.0
     @test PSIP.get_capacity_limits_charge(technology, IS.NU) == (min = 0.0, max = 200.0)
     @test PSIP.get_capacity_limits_discharge(technology, IS.NU) == (min = 0.0, max = 200.0)
     @test PSIP.get_capacity_limits_energy(technology, IS.NU) == (min = 0.0, max = 400.0)
