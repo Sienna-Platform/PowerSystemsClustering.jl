@@ -1,9 +1,33 @@
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+HiGHS = "87dc4568-4c63-4d18-b0c0-bb2238e4078b"
+InfrastructureOptimizationModels = "bed98974-b02a-5e2f-9ee0-a103f5c45069"
 InfrastructureSystems = "2cd47ed4-ca9b-11e9-27f2-ab636a7671f1"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+PowerFlowFileParser = "bed98974-b02e-5e2f-9ee0-a103f5c450dd"
+PowerSystemCaseBuilder = "f00506e0-b84f-492a-93c2-c0a9afc4364e"
+PowerSystems = "bcd98974-b02a-5e2f-9ee0-a103f5c450dd"
 PowerSystemsClustering = "1515ac2a-9821-428e-a85c-eb5e7a28f662"
+PowerSystemsInvestments = "bed98974-b02a-5e2f-9ee0-a103f5c450dd"
+PowerSystemsInvestmentsPortfolios = "bed98974-b02a-5e2f-9fe0-a103f8c450dd"
+PowerTableDataParser = "2b750c0e-0bff-11f1-9200-1befd75df6be"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TimeSeries = "9e3dc215-6440-5c97-bce1-76c03772f85e"
+
+[sources]
+# Julia only honors [sources] in the root project; these match PowerSystemsInvestments.jl's
+# test environment. PowerFlowFileParser and PowerTableDataParser are PSCB dependencies.
+InfrastructureOptimizationModels = {rev = "main", url = "https://github.com/Sienna-Platform/InfrastructureOptimizationModels.jl.git"}
+InfrastructureSystems = {rev = "IS4", url = "https://github.com/Sienna-Platform/InfrastructureSystems.jl.git"}
+PowerFlowFileParser = {rev = "psy6", url = "https://github.com/Sienna-Platform/PowerFlowFileParser.jl.git"}
+PowerSystemCaseBuilder = {rev = "psy6", url = "https://github.com/Sienna-Platform/PowerSystemCaseBuilder.jl"}
+PowerSystems = {rev = "psy6", url = "https://github.com/Sienna-Platform/PowerSystems.jl.git"}
+PowerSystemsClustering = {path = ".."}
+PowerSystemsInvestments = {path = "../../PowerSystemsInvestments.jl"}
+PowerSystemsInvestmentsPortfolios = {path = "../../PowerSystemsInvestmentsPortfolios.jl"}
+PowerTableDataParser = {rev = "psy6", url = "https://github.com/NLR-Sienna/PowerTableDataParser.jl.git"}
 
 [compat]
 julia = "^1.10"
