@@ -29,4 +29,9 @@ using DocStringExtensions
                                  $(DOCSTRING)
                                  """
 
+#### Portfolio construction ####
+
+include("portfolio/initialize.jl")
+include("portfolio/regions.jl")
+
 end
