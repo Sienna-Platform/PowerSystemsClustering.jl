@@ -82,59 +82,6 @@ function thermal_operation_costs(
     )
 end
 
-function _linear_variable_cost(
-    curve::IS.CostCurve{<:IS.ValueCurve, PSY.NaturalUnit},
-    linearization::CurveLinearization,
-    limits::PSY.MinMax,
-    fixed::Float64,
-    ::ThermalDevice,
-)
-    linear =
-        linearize(IS.get_value_curve(curve), linearization, limits; online_cost = fixed)
-    return IS.CostCurve(linear, PSY.NaturalUnit(), IS.get_vom_cost(curve))
-end
-
-function _linear_variable_cost(
-    curve::IS.FuelCurve{<:IS.ValueCurve, PSY.NaturalUnit},
-    linearization::CurveLinearization,
-    limits::PSY.MinMax,
-    fixed::Float64,
-    device::ThermalDevice,
-)
-    name = PSY.get_name(device)
-    if !iszero(fixed)
-        throw(ArgumentError("$(name): a fixed cost cannot be added to a fuel curve."))
-    end
-    fuel_price = IS.get_fuel_cost(curve)
-    if isnothing(fuel_price)
-        throw(ArgumentError("$(name): time series fuel prices are not supported."))
-    end
-    start_up_fuel = IS.get_proportional_term(IS.get_startup_fuel_offtake(curve))
-    return IS.FuelCurve(
-        linearize(IS.get_value_curve(curve), linearization, limits),
-        PSY.NaturalUnit(),
-        IS.get_fuel_units(curve),
-        fuel_price,
-        IS.LinearCurve(start_up_fuel / limits.max),
-        IS.get_vom_cost(curve),
-    )
-end
-
-function _linear_variable_cost(
-    ::IS.ProductionVariableCostCurve,
-    ::CurveLinearization,
-    ::PSY.MinMax,
-    ::Float64,
-    device::ThermalDevice,
-)
-    throw(
-        ArgumentError(
-            "$(PSY.get_name(device)): only cost and fuel curves in natural units (MW) are " *
-            "supported.",
-        ),
-    )
-end
-
 _single_start_up_cost(start_up::Float64, ::Symbol, ::ThermalDevice) = start_up
 
 function _single_start_up_cost(
