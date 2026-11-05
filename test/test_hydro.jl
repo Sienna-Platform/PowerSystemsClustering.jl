@@ -34,17 +34,3 @@ end
     @test variable isa IS.CostCurve{IS.LinearCurve}
     @test IS.get_proportional_term(IS.get_value_curve(variable)) == 0.0
 end
-
-@testset "HydroTurbine and HydroReservoir are skipped" begin
-    sys =
-        build_system(PSITestSystems, "c_sys5_hy_turbine_energy"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
-    for device in PSY.get_components(Union{PSY.HydroTurbine, PSY.HydroReservoir}, sys)
-        @test_logs (:warn, r"Skipping") PSC.add_existing_technology!(
-            portfolio,
-            device,
-            TECHNOLOGY_FINANCIAL_DATA,
-        )
-    end
-    @test isempty(PSIP.get_technologies(PSIP.Technology, portfolio))
-end

@@ -10,8 +10,11 @@ using PowerSystemsClustering
 const PSC = PowerSystemsClustering
 using PowerSystemCaseBuilder
 import HiGHS
+import JuMP
+import TimeSeries
 
 include("test_utils/financial_data.jl")
+include("test_utils/representative_days.jl")
 
 import Aqua
 Aqua.test_unbound_args(PowerSystemsClustering)

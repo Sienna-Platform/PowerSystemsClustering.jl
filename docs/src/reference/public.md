@@ -3,4 +3,5 @@
 ```@autodocs
 Modules = [PowerSystemsClustering]
 Public = true
+Private = false
 ```

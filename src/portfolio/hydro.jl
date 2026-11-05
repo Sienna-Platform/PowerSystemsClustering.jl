@@ -51,17 +51,3 @@ function _priced_cost_curve(curve::IS.FuelCurve)
     )
     return IS.CostCurve(priced, PSY.NaturalUnit(), IS.get_vom_cost(curve))
 end
-
-"""
-Skip a `HydroTurbine` or `HydroReservoir` with a warning: PSIN has no formulation for them yet.
-Returns `nothing`.
-"""
-function add_existing_technology!(
-    ::PSIP.Portfolio,
-    device::Union{PSY.HydroTurbine, PSY.HydroReservoir},
-    ::PSIP.TechnologyFinancialData;
-    kwargs...,
-)
-    @warn "Skipping $(nameof(typeof(device))) $(PSY.get_name(device)): PSIN does not model hydro turbines and reservoirs yet."
-    return
-end

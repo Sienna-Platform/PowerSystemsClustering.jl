@@ -1,5 +1,11 @@
 module PowerSystemsClustering
 
+#### Exports ####
+
+export build_portfolio
+export AverageRate
+export IncrementalRate
+
 #### Imports ####
 
 import Clustering
@@ -42,5 +48,6 @@ include("portfolio/renewable.jl")
 include("portfolio/hydro.jl")
 include("portfolio/storage.jl")
 include("portfolio/demand.jl")
+include("build_portfolio.jl")
 
 end
