@@ -50,4 +50,9 @@ include("portfolio/storage.jl")
 include("portfolio/demand.jl")
 include("build_portfolio.jl")
 
+#### Unit aggregation ####
+
+include("aggregation/grouping.jl")
+include("aggregation/unit_features.jl")
+
 end
