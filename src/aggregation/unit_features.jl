@@ -51,10 +51,31 @@ its rows. All devices must have the same type, as devices in one group do.
 feature_matrix(devices::AbstractVector{<:PSY.StaticInjection}) =
     _feature_matrix(first(devices), devices)
 
-function _feature_matrix(::PSY.StaticInjection, devices)
+function _scalar_feature_matrix(devices)
     features = unit_features.(devices)
     return reduce(hcat, collect.(values.(features))), collect(keys(first(features)))
 end
+
+function _feature_matrix(::ThermalDevice, devices)
+    # The average rate is a heat rate for fuel curves and a cost for cost curves, so a group
+    # mixing the two cannot be compared on it.
+    curve_kinds = unique(
+        nameof(typeof(PSY.get_variable_operation_cost(PSY.get_operation_cost(device))))
+        for
+        device in devices
+    )
+    if length(curve_kinds) > 1
+        throw(
+            ArgumentError(
+                "A group mixes thermal units with $(join(curve_kinds, " and ")) costs, " *
+                "whose average rates cannot be compared.",
+            ),
+        )
+    end
+    return _scalar_feature_matrix(devices)
+end
+
+_feature_matrix(::PSY.StaticInjection, devices) = _scalar_feature_matrix(devices)
 
 function _feature_matrix(::RenewableDevice, devices)
     profiles = [

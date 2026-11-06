@@ -54,5 +54,7 @@ include("build_portfolio.jl")
 
 include("aggregation/grouping.jl")
 include("aggregation/unit_features.jl")
+include("aggregation/clustering.jl")
+include("aggregation/attribute_rules.jl")
 
 end
