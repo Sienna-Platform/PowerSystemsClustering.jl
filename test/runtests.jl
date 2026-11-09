@@ -3,7 +3,7 @@ using Logging
 using Dates
 import InfrastructureSystems as IS
 import PowerSystems as PSY
-using PowerSystems: @u_str
+using PowerSystems: @u_str, PerUnit
 import PowerSystemsInvestmentsPortfolios as PSIP
 import PowerSystemsInvestments as PSIN
 using PowerSystemsClustering

@@ -22,6 +22,17 @@ _slope(t) = IS.get_proportional_term(IS.get_value_curve(_variable(t)))
         capacity_limits = (min = 0.0, max = 400.0),
         time_limits = (up = 240.0, down = 30.0),
     )
+
+    # A rule can bring its own weight, read from each unit's fields: here time limits weighted
+    # by minimum up time instead of capacity.
+    up_time(f) = f.time_limits.up
+    weighted = PSC.merge_fields(
+        unit_fields,
+        [100.0, 300.0],
+        (time_limits = PSC.capacity_weighted => (up = up_time, down = up_time),),
+    )
+    @test weighted.time_limits.up ≈ (60.0^2 + 240.0^2) / 300.0
+    @test weighted.time_limits.down ≈ 240.0 * 30.0 / 300.0
 end
 
 @testset "Aggregate a cluster of thermal units" begin
@@ -218,4 +229,64 @@ end
     @test technology isa PSIP.SupplyTechnology{PSY.HydroDispatch}
     @test PSIP.get_existing_capacity_mw(portfolio, technology) == 600.0
     @test PSIP.get_operation_costs(technology, IS.NU) isa PSY.HydroGenerationCost
+end
+
+@testset "Aggregate storage units" begin
+    # c_sys5_bat's 200 MW / 400 MWh battery and a second unit at its bus charging at 50 MW and
+    # discharging at 100 MW into 400 MWh, with lower efficiency, self-discharge and a discharge
+    # cost.
+    sys = build_system(PSITestSystems, "c_sys5_bat"; skip_serialization = true)
+    battery = only(PSY.get_components(PSY.EnergyReservoirStorage, sys))
+    second = PSY.EnergyReservoirStorage(;
+        name = "Bat_2",
+        available = true,
+        bus = PSY.get_bus(battery),
+        prime_mover_type = PSY.PrimeMovers.BA,
+        storage_technology_type = PSY.StorageTech.OTHER_CHEM,
+        storage_capacity = 400.0,
+        storage_level_limits = (min = 0.0, max = 1.0),
+        initial_storage_capacity_level = 0.5,
+        rating = 100.0,
+        active_power = 0.0,
+        input_active_power_limits = (min = 0.0, max = 50.0),
+        output_active_power_limits = (min = 0.0, max = 100.0),
+        efficiency = (in = 0.5, out = 0.6),
+        reactive_power = 0.0,
+        reactive_power_limits = nothing,
+        base_power = 100.0,
+        operation_cost = PSY.StorageCost(;
+            discharge_variable_cost = IS.CostCurve(IS.LinearCurve(6.0)),
+            start_up = 300.0,
+        ),
+        self_discharge = 0.001,
+        input_basis = u"NU",
+    )
+    PSY.add_component!(sys, second)
+    devices = [battery, second]
+    portfolio = new_portfolio(sys, PSY.ACBus)
+    technology =
+        PSC.add_aggregated_technology!(
+            portfolio,
+            devices,
+            "storage",
+            TECHNOLOGY_FINANCIAL_DATA,
+        )
+
+    @test technology isa PSIP.StorageTechnology{PSY.EnergyReservoirStorage}
+    @test PSIP.get_capacity_limits_charge(technology, IS.NU).max == 250.0
+    @test PSIP.get_capacity_limits_discharge(technology, IS.NU).max == 300.0
+    @test PSIP.get_capacity_limits_energy(technology, IS.NU).max == 800.0
+    @test PSIP.get_existing_capacity_mw(portfolio, technology) == 300.0
+    @test PSIP.get_existing_capacity_mwh(portfolio, technology) == 800.0
+    # Charge efficiency weighted by charge power (200 and 50 MW), discharge efficiency by
+    # discharge power (200 and 100 MW), losses by energy capacity (400 and 400 MWh).
+    @test PSIP.get_efficiency(technology).in ≈ (200 * 0.8 + 50 * 0.5) / 250
+    @test PSIP.get_efficiency(technology).out ≈ (200 * 0.9 + 100 * 0.6) / 300
+    @test PSIP.get_losses(technology) ≈ 60.0 * 0.001 / 2
+    # Per-MW costs keep the cluster's total: 6 $/MWh on 100 of 300 MW, 300 $ per start.
+    costs = PSIP.get_operation_costs(technology, IS.NU)
+    @test IS.get_proportional_term(
+        IS.get_value_curve(PSY.get_discharge_variable_cost(costs)),
+    ) ≈ 2.0
+    @test PSY.get_start_up(costs) * 300.0 ≈ 300.0
 end

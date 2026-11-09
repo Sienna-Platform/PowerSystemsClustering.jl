@@ -5,7 +5,7 @@ Add one technology `name` for the cluster `devices` to `portfolio`, listing ever
 """
 function add_aggregated_technology!(
     portfolio::PSIP.Portfolio,
-    devices::AbstractVector{<:PSY.Generator},
+    devices::AbstractVector{<:PSY.StaticInjection},
     name::String,
     financial_data::PSIP.TechnologyFinancialData;
     rules::NamedTuple = default_rules(first(devices)),
@@ -15,7 +15,7 @@ function add_aggregated_technology!(
         technology_fields(device, portfolio.aggregation, financial_data; kwargs...) for
         device in devices
     ]
-    capacities = [PSY.get_max_active_power(device, u"MW") for device in devices]
+    capacities = _unit_capacity.(devices)
     fields = merge_fields(unit_fields, capacities, rules)
     technology = _technology_type(first(devices))(; fields..., name = name)
     PSIP.add_technology!(portfolio, technology)
@@ -24,9 +24,15 @@ function add_aggregated_technology!(
     return technology
 end
 
+# Capacity weighting a unit's fields: maximum output.
+_unit_capacity(device::PSY.Generator) = PSY.get_max_active_power(device, u"MW")
+_unit_capacity(device::PSY.Storage) = PSY.get_output_active_power_limits(device, u"MW").max
+
 """
 Merge the units' `unit_fields` with `rules[field]`, field by field for `NamedTuple` values.
-Fields without a rule take the first unit's value.
+A rule is weighted by `capacities`, or by its own weight given as `rule => weight`, where
+`weight` takes a unit's fields (a `NamedTuple` of weights for a `NamedTuple` field). Fields
+without a rule take the first unit's value.
 """
 function merge_fields(
     unit_fields::AbstractVector{<:NamedTuple{K}},
@@ -37,12 +43,32 @@ function merge_fields(
         _merge_field(
             get(rules, field, nothing),
             [f[field] for f in unit_fields],
+            unit_fields,
             capacities,
         )
         for field in K
     )
     return NamedTuple{K}(Tuple(merged))
 end
+
+_merge_field(
+    rule::Pair,
+    values::AbstractVector,
+    unit_fields::AbstractVector,
+    ::AbstractVector{Float64},
+) =
+    _merge_field(first(rule), values, _weights(last(rule), unit_fields))
+_merge_field(
+    rule,
+    values::AbstractVector,
+    ::AbstractVector,
+    capacities::AbstractVector{Float64},
+) =
+    _merge_field(rule, values, capacities)
+
+_weights(weight::Function, unit_fields::AbstractVector) = weight.(unit_fields)
+_weights(weights::NamedTuple, unit_fields::AbstractVector) =
+    map(weight -> weight.(unit_fields), weights)
 
 _merge_field(rule::Function, values::AbstractVector, capacities::AbstractVector{Float64}) =
     rule(values, capacities)
@@ -52,6 +78,12 @@ _merge_field(
     capacities::AbstractVector{Float64},
 ) where {K} =
     NamedTuple{K}(Tuple(rule([value[k] for value in values], capacities) for k in K))
+_merge_field(
+    rule::Function,
+    values::AbstractVector{<:NamedTuple{K}},
+    weights::NamedTuple{K},
+) where {K} =
+    NamedTuple{K}(Tuple(rule([value[k] for value in values], weights[k]) for k in K))
 _merge_field(::Nothing, values::AbstractVector, ::AbstractVector{Float64}) = first(values)
 
 """
@@ -61,7 +93,7 @@ cluster. Returns each unit's cluster number.
 function aggregate_group!(
     portfolio::PSIP.Portfolio,
     key::NamedTuple,
-    devices::AbstractVector{<:PSY.Generator},
+    devices::AbstractVector{<:PSY.StaticInjection},
     n_clusters::Int,
     financial_data::PSIP.TechnologyFinancialData;
     seed::Int = 1,

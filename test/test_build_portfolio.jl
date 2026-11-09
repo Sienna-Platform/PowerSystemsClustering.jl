@@ -104,4 +104,9 @@ end
         build(Dict((area, PSY.RenewableDispatch) => 1 for area in ("1", "2", "3")))
     @test length(renewable(portfolio)) < length(renewable(reference))
     @test renewable_capacity(portfolio) ≈ renewable_capacity(reference)
+
+    # Storage too: area 3's single battery as a cluster of one.
+    _, devices = build(Dict(("3", PSY.EnergyReservoirStorage) => 1))
+    @test only(filter(row -> row.device == "313_STORAGE_1", devices)).technology ==
+          "3_EnergyReservoirStorage_BA_1"
 end

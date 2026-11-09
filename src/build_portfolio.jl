@@ -1,6 +1,6 @@
 """
 Build a `PSIP.Portfolio` from `sys` with regions at the level `aggregation`: one technology
-per device, or per cluster for generator groups listed in `n_clusters`. Devices of unsupported
+per device, or per cluster for supply and storage groups listed in `n_clusters`. Devices of unsupported
 types (e.g. `HydroTurbine`) are skipped with a warning.
 
 Returns the portfolio and its [`device_table`](@ref).
@@ -96,8 +96,9 @@ function _requested_clusters(n_clusters::Dict, key::NamedTuple)
 end
 
 # Types that can be aggregated, and types always converted one to one.
-const AggregatedDevice = Union{ThermalDevice, RenewableDevice, PSY.HydroDispatch}
-const OneToOneDevice = Union{PSY.EnergyReservoirStorage, LoadDevice}
+const AggregatedDevice =
+    Union{ThermalDevice, RenewableDevice, PSY.HydroDispatch, PSY.EnergyReservoirStorage}
+const OneToOneDevice = LoadDevice
 
 _is_converted(::Union{AggregatedDevice, OneToOneDevice}) = true
 _is_converted(::PSY.Device) = false
