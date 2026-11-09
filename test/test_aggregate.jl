@@ -178,3 +178,44 @@ end
           [1, 1, 1, 1]
     @test length(PSIP.get_technologies(PSIP.SupplyTechnology, portfolio)) == 1
 end
+
+@testset "Aggregate renewable units" begin
+    # The largest RTS-GMLC renewable group, clustered on hourly profiles into 3 technologies.
+    sys = build_system(PSISystems, "RTS_GMLC_DA_sys_noForecast"; skip_serialization = true)
+    groups = PSC.group_devices(PSY.get_components(PSC.RenewableDevice, sys), PSY.Area)
+    key, devices = argmax(kv -> length(kv[2]), collect(groups))
+    portfolio = new_portfolio(sys, PSY.Area)
+    clusters = PSC.aggregate_group!(portfolio, key, devices, 3, TECHNOLOGY_FINANCIAL_DATA)
+    technologies = collect(PSIP.get_technologies(PSIP.SupplyTechnology, portfolio))
+    @test length(technologies) == maximum(clusters)
+    for technology in technologies
+        existing = only(IS.get_supplemental_attributes(PSIP.ExistingDevices, technology))
+        names = PSIP.get_existing_devices(existing)
+        capacities = [
+            PSY.get_max_active_power(PSY.get_component(key.type, sys, name), u"MW") for
+            name in names
+        ]
+        @test PSIP.get_capacity_limits(technology, IS.NU).max ≈ sum(capacities)
+        @test PSIP.get_existing_capacity_mw(portfolio, technology) ≈ sum(capacities)
+        @test technology.time_limits == (up = 0.0, down = 0.0)
+        costs = PSIP.get_operation_costs(technology, IS.NU)
+        @test PSY.get_curtailment_cost(costs) isa IS.CostCurve{IS.LinearCurve}
+    end
+end
+
+@testset "Aggregate hydro units" begin
+    # c_sys5_hy's single 600 MW HydroDispatch unit, aggregated as a group of one.
+    sys = build_system(PSITestSystems, "c_sys5_hy"; skip_serialization = true)
+    devices = collect(PSY.get_components(PSY.HydroDispatch, sys))
+    portfolio = new_portfolio(sys, PSY.ACBus)
+    technology =
+        PSC.add_aggregated_technology!(
+            portfolio,
+            devices,
+            "hydro",
+            TECHNOLOGY_FINANCIAL_DATA,
+        )
+    @test technology isa PSIP.SupplyTechnology{PSY.HydroDispatch}
+    @test PSIP.get_existing_capacity_mw(portfolio, technology) == 600.0
+    @test PSIP.get_operation_costs(technology, IS.NU) isa PSY.HydroGenerationCost
+end

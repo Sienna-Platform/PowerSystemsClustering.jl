@@ -96,4 +96,12 @@ end
     gas_ct = ("3", PSY.ThermalStandard, PSY.PrimeMovers.CT, PSY.ThermalFuels.NATURAL_GAS)
     portfolio, _ = build(Dict(("3", PSY.ThermalStandard) => 2, gas_ct => 3))
     @test length(thermal(portfolio)) == 73 - 26 + 8
+
+    # Renewables aggregate the same way; total capacity is unchanged.
+    renewable(p) = PSIP.get_technologies(PSIP.SupplyTechnology{PSY.RenewableDispatch}, p)
+    renewable_capacity(p) = sum(PSIP.get_existing_capacity_mw(p, t) for t in renewable(p))
+    portfolio, _ =
+        build(Dict((area, PSY.RenewableDispatch) => 1 for area in ("1", "2", "3")))
+    @test length(renewable(portfolio)) < length(renewable(reference))
+    @test renewable_capacity(portfolio) ≈ renewable_capacity(reference)
 end

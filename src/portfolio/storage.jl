@@ -1,15 +1,14 @@
-"""
-Make a `PSIP.StorageTechnology` for the existing storage unit `device`. Charge, discharge and
-energy capacities are its maximum input power, maximum output power and storage capacity.
-"""
-function make_technology(
+# Charge, discharge and energy capacities are the maximum input power, maximum output power and
+# storage capacity.
+function technology_fields(
     device::PSY.EnergyReservoirStorage,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
-    financial_data::PSIP.TechnologyFinancialData,
+    financial_data::PSIP.TechnologyFinancialData;
+    kwargs...,
 )
     input = PSY.get_input_active_power_limits(device, u"MW")
     output = PSY.get_output_active_power_limits(device, u"MW")
-    return PSIP.StorageTechnology{PSY.EnergyReservoirStorage}(;
+    return (;
         _existing_device_fields(device, aggregation, financial_data)...,
         storage_tech = PSY.get_storage_technology_type(device),
         operation_costs = storage_operation_costs(device),

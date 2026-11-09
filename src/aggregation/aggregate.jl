@@ -1,14 +1,14 @@
 """
 Add one technology `name` for the cluster `devices` to `portfolio`, listing every unit in
-`PSIP.ExistingDevices`. The units' fields are merged with `rules` (see [`THERMAL_RULES`](@ref)).
-Returns the technology.
+`PSIP.ExistingDevices`. The units' fields are merged with `rules`, by default the type's
+(e.g. [`THERMAL_RULES`](@ref)). Returns the technology.
 """
 function add_aggregated_technology!(
     portfolio::PSIP.Portfolio,
-    devices::AbstractVector{<:ThermalDevice},
+    devices::AbstractVector{<:PSY.Generator},
     name::String,
     financial_data::PSIP.TechnologyFinancialData;
-    rules::NamedTuple = THERMAL_RULES,
+    rules::NamedTuple = default_rules(first(devices)),
     kwargs...,
 )
     unit_fields = [
@@ -17,7 +17,7 @@ function add_aggregated_technology!(
     ]
     capacities = [PSY.get_max_active_power(device, u"MW") for device in devices]
     fields = merge_fields(unit_fields, capacities, rules)
-    technology = PSIP.SupplyTechnology{typeof(first(devices))}(; fields..., name = name)
+    technology = _technology_type(first(devices))(; fields..., name = name)
     PSIP.add_technology!(portfolio, technology)
     existing = PSIP.ExistingDevices(; existing_devices = PSY.get_name.(devices))
     PSIP.add_supplemental_attribute!(portfolio, technology, existing)
@@ -61,7 +61,7 @@ cluster. Returns each unit's cluster number.
 function aggregate_group!(
     portfolio::PSIP.Portfolio,
     key::NamedTuple,
-    devices::AbstractVector{<:ThermalDevice},
+    devices::AbstractVector{<:PSY.Generator},
     n_clusters::Int,
     financial_data::PSIP.TechnologyFinancialData;
     seed::Int = 1,

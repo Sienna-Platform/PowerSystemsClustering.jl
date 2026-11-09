@@ -36,6 +36,34 @@ function merge_costs(
     )
 end
 
+"""
+Merge renewable operating costs: variable and curtailment costs capacity-weighted.
+"""
+merge_costs(
+    costs::AbstractVector{PSY.RenewableGenerationCost},
+    capacities::AbstractVector{Float64},
+) = PSY.RenewableGenerationCost(;
+    variable_operation_cost = _merge_curves(
+        PSY.get_variable_operation_cost.(costs),
+        capacities,
+    ),
+    curtailment_cost = _merge_curves(PSY.get_curtailment_cost.(costs), capacities),
+)
+
+"""
+Merge hydro operating costs: the variable cost capacity-weighted.
+"""
+merge_costs(
+    costs::AbstractVector{PSY.HydroGenerationCost},
+    capacities::AbstractVector{Float64},
+) = PSY.HydroGenerationCost(;
+    variable_operation_cost = _merge_curves(
+        PSY.get_variable_operation_cost.(costs),
+        capacities,
+    ),
+    fixed = 0.0,
+)
+
 function _merge_curves(
     curves::AbstractVector{<:IS.CostCurve},
     capacities::AbstractVector{Float64},
@@ -46,6 +74,34 @@ function _merge_curves(
         _merge_linear(IS.get_vom_cost.(curves), capacities),
     )
 end
+
+"""
+Merge renewable operating costs: variable and curtailment costs capacity-weighted.
+"""
+merge_costs(
+    costs::AbstractVector{PSY.RenewableGenerationCost},
+    capacities::AbstractVector{Float64},
+) = PSY.RenewableGenerationCost(;
+    variable_operation_cost = _merge_curves(
+        PSY.get_variable_operation_cost.(costs),
+        capacities,
+    ),
+    curtailment_cost = _merge_curves(PSY.get_curtailment_cost.(costs), capacities),
+)
+
+"""
+Merge hydro operating costs: the variable cost capacity-weighted.
+"""
+merge_costs(
+    costs::AbstractVector{PSY.HydroGenerationCost},
+    capacities::AbstractVector{Float64},
+) = PSY.HydroGenerationCost(;
+    variable_operation_cost = _merge_curves(
+        PSY.get_variable_operation_cost.(costs),
+        capacities,
+    ),
+    fixed = 0.0,
+)
 
 function _merge_curves(
     curves::AbstractVector{<:IS.FuelCurve},
@@ -84,3 +140,23 @@ const THERMAL_RULES = (
     start_fuel_mmbtu_per_mw = capacity_weighted,
     operation_costs = merge_costs,
 )
+
+"""
+Rules for merging hydro technology fields.
+"""
+const HYDRO_RULES = (
+    capacity_limits = total,
+    min_generation_fraction = capacity_weighted,
+    ramp_limits = capacity_weighted,
+    time_limits = largest,
+    operation_costs = merge_costs,
+)
+
+"""
+Rules for merging renewable technology fields.
+"""
+const RENEWABLE_RULES = (capacity_limits = total, operation_costs = merge_costs)
+
+default_rules(::ThermalDevice) = THERMAL_RULES
+default_rules(::PSY.HydroDispatch) = HYDRO_RULES
+default_rules(::RenewableDevice) = RENEWABLE_RULES

@@ -1,17 +1,13 @@
-"""
-Make a `PSIP.SupplyTechnology` for the existing hydro unit `device`.
-"""
-function make_technology(
+technology_fields(
     device::PSY.HydroDispatch,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
-    financial_data::PSIP.TechnologyFinancialData,
+    financial_data::PSIP.TechnologyFinancialData;
+    kwargs...,
+) = (
+    _existing_generator_fields(device, aggregation, financial_data)...,
+    _operating_limits(device)...,
+    operation_costs = hydro_operation_costs(device),
 )
-    return PSIP.SupplyTechnology{PSY.HydroDispatch}(;
-        _existing_generator_fields(device, aggregation, financial_data)...,
-        _operating_limits(device)...,
-        operation_costs = hydro_operation_costs(device),
-    )
-end
 
 """
 Operating costs of the hydro unit `device`: its curve linearized at maximum output. A fuel

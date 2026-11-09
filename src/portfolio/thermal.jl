@@ -1,23 +1,6 @@
 # Thermal device types converted to `PSIP.SupplyTechnology`.
 const ThermalDevice = Union{PSY.ThermalStandard, PSY.ThermalMultiStart}
 
-"""
-Make a `PSIP.SupplyTechnology` for the existing thermal unit `device`.
-"""
-function make_technology(
-    device::T,
-    aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
-    financial_data::PSIP.TechnologyFinancialData;
-    kwargs...,
-) where {T <: ThermalDevice}
-    return PSIP.SupplyTechnology{T}(;
-        technology_fields(device, aggregation, financial_data; kwargs...)...,
-    )
-end
-
-"""
-Fields of the technology for the thermal unit `device`, as a `NamedTuple`.
-"""
 function technology_fields(
     device::ThermalDevice,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},

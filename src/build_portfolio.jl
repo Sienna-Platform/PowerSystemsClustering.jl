@@ -1,6 +1,6 @@
 """
 Build a `PSIP.Portfolio` from `sys` with regions at the level `aggregation`: one technology
-per device, or per cluster for thermal groups listed in `n_clusters`. Devices of unsupported
+per device, or per cluster for generator groups listed in `n_clusters`. Devices of unsupported
 types (e.g. `HydroTurbine`) are skipped with a warning.
 
 Returns the portfolio and its [`device_table`](@ref).
@@ -37,7 +37,7 @@ function build_portfolio(
         interest_rate,
     )
     thermal_options = (; linearization, start_up_stage)
-    groups = group_devices(PSY.get_components(ThermalDevice, sys), aggregation)
+    groups = group_devices(PSY.get_components(AggregatedDevice, sys), aggregation)
     for (key, devices) in groups
         clusters = _requested_clusters(n_clusters, key)
         if isnothing(clusters)
@@ -61,7 +61,7 @@ function build_portfolio(
             )
         end
     end
-    for device in PSY.get_components(OtherConvertedDevice, sys)
+    for device in PSY.get_components(OneToOneDevice, sys)
         add_existing_technology!(portfolio, device, technology_financial_data)
     end
     _warn_skipped_devices(sys)
@@ -95,11 +95,11 @@ function _requested_clusters(n_clusters::Dict, key::NamedTuple)
     return entry
 end
 
-# Converted types other than thermal.
-const OtherConvertedDevice =
-    Union{RenewableDevice, PSY.HydroDispatch, PSY.EnergyReservoirStorage, LoadDevice}
+# Types that can be aggregated, and types always converted one to one.
+const AggregatedDevice = Union{ThermalDevice, RenewableDevice, PSY.HydroDispatch}
+const OneToOneDevice = Union{PSY.EnergyReservoirStorage, LoadDevice}
 
-_is_converted(::Union{ThermalDevice, OtherConvertedDevice}) = true
+_is_converted(::Union{AggregatedDevice, OneToOneDevice}) = true
 _is_converted(::PSY.Device) = false
 
 function _warn_skipped_devices(sys::PSY.System)

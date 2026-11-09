@@ -1,21 +1,17 @@
 # Renewable device types converted to `PSIP.SupplyTechnology`.
 const RenewableDevice = Union{PSY.RenewableDispatch, PSY.RenewableNonDispatch}
 
-"""
-Make a `PSIP.SupplyTechnology` for the existing renewable unit `device`. Capacity is rating ×
-power factor.
-"""
-function make_technology(
-    device::T,
+# Capacity is rating × power factor; no minimum up and down times.
+technology_fields(
+    device::RenewableDevice,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
-    financial_data::PSIP.TechnologyFinancialData,
-) where {T <: RenewableDevice}
-    return PSIP.SupplyTechnology{T}(;
-        _existing_generator_fields(device, aggregation, financial_data)...,
-        time_limits = (up = 0.0, down = 0.0),
-        operation_costs = renewable_operation_costs(device),
-    )
-end
+    financial_data::PSIP.TechnologyFinancialData;
+    kwargs...,
+) = (
+    _existing_generator_fields(device, aggregation, financial_data)...,
+    time_limits = (up = 0.0, down = 0.0),
+    operation_costs = renewable_operation_costs(device),
+)
 
 """
 Operating costs of the renewable unit `device`: variable and curtailment costs linearized at

@@ -1,4 +1,27 @@
 """
+Make the technology for the existing `device`: a `PSIP.SupplyTechnology`,
+`PSIP.StorageTechnology` or `PSIP.DemandRequirement` with its [`technology_fields`](@ref).
+"""
+make_technology(
+    device::PSY.StaticInjection,
+    aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
+    financial_data::PSIP.TechnologyFinancialData;
+    kwargs...,
+) = _technology_type(device)(;
+    technology_fields(device, aggregation, financial_data; kwargs...)...,
+)
+
+"""
+Fields of the technology for `device`, as a `NamedTuple`. Keyword arguments are thermal
+options ([`thermal_operation_costs`](@ref)); other types ignore them.
+"""
+function technology_fields end
+
+_technology_type(::T) where {T <: PSY.Generator} = PSIP.SupplyTechnology{T}
+_technology_type(::T) where {T <: PSY.Storage} = PSIP.StorageTechnology{T}
+_technology_type(::T) where {T <: PSY.ElectricLoad} = PSIP.DemandRequirement{T}
+
+"""
 Add the technology [`make_technology`](@ref) makes for `device` to `portfolio`, with a
 `PSIP.ExistingDevices` attribute naming the device. Returns the technology.
 """
