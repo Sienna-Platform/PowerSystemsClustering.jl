@@ -16,6 +16,8 @@ import TimeSeries
 
 include("test_utils/financial_data.jl")
 include("test_utils/representative_days.jl")
+include("test_utils/psin_model.jl")
+include("test_utils/batteries.jl")
 
 import Aqua
 Aqua.test_unbound_args(PowerSystemsClustering)

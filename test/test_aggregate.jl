@@ -237,31 +237,20 @@ end
     # cost.
     sys = build_system(PSITestSystems, "c_sys5_bat"; skip_serialization = true)
     battery = only(PSY.get_components(PSY.EnergyReservoirStorage, sys))
-    second = PSY.EnergyReservoirStorage(;
-        name = "Bat_2",
-        available = true,
-        bus = PSY.get_bus(battery),
-        prime_mover_type = PSY.PrimeMovers.BA,
-        storage_technology_type = PSY.StorageTech.OTHER_CHEM,
-        storage_capacity = 400.0,
-        storage_level_limits = (min = 0.0, max = 1.0),
-        initial_storage_capacity_level = 0.5,
-        rating = 100.0,
-        active_power = 0.0,
-        input_active_power_limits = (min = 0.0, max = 50.0),
-        output_active_power_limits = (min = 0.0, max = 100.0),
+    second = add_battery!(
+        sys,
+        "Bat_2",
+        PSY.get_bus(battery);
+        charge_mw = 50.0,
+        discharge_mw = 100.0,
+        energy_mwh = 400.0,
         efficiency = (in = 0.5, out = 0.6),
-        reactive_power = 0.0,
-        reactive_power_limits = nothing,
-        base_power = 100.0,
+        self_discharge = 0.001,
         operation_cost = PSY.StorageCost(;
             discharge_variable_cost = IS.CostCurve(IS.LinearCurve(6.0)),
             start_up = 300.0,
         ),
-        self_discharge = 0.001,
-        input_basis = u"NU",
     )
-    PSY.add_component!(sys, second)
     devices = [battery, second]
     portfolio = new_portfolio(sys, PSY.ACBus)
     technology =
