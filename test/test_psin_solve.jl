@@ -1,7 +1,7 @@
 @testset "A built portfolio runs in PSIN" begin
     # RTS-GMLC, two hand-picked days re-stamped to 2030, one investment period, single region.
     sys = build_system(PSISystems, "RTS_GMLC_DA_sys_noForecast"; skip_serialization = true)
-    portfolio = build_portfolio(
+    portfolio, _ = build_portfolio(
         sys,
         PSY.Area;
         technology_financial_data = TECHNOLOGY_FINANCIAL_DATA,
@@ -23,8 +23,7 @@
     )
     storage_type = PSIP.StorageTechnology{PSY.EnergyReservoirStorage}
     demand_type = PSIP.DemandRequirement{PSY.PowerLoad}
-    # Rooftop PV (RenewableNonDispatch) is left out: PSIN `jp/capex_psy6` has no formulation
-    # for it (inconsistency 10).
+    # Rooftop PV (RenewableNonDispatch) is left out: this PSIN has no formulation for it.
     for (T, investment, operation) in (
         ((T, PSIN.ContinuousInvestment, PSIN.BasicDispatch) for T in supply_types)...,
         (storage_type, PSIN.ContinuousInvestment, PSIN.CyclicalStorageDispatch),

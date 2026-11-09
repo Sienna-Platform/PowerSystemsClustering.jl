@@ -39,7 +39,6 @@ using DocStringExtensions
 
 #### Portfolio construction ####
 
-include("portfolio/initialize.jl")
 include("portfolio/regions.jl")
 include("portfolio/cost_curves.jl")
 include("portfolio/technologies.jl")
@@ -56,5 +55,6 @@ include("aggregation/grouping.jl")
 include("aggregation/unit_features.jl")
 include("aggregation/clustering.jl")
 include("aggregation/attribute_rules.jl")
+include("aggregation/aggregate.jl")
 
 end

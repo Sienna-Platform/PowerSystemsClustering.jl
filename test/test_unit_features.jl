@@ -42,14 +42,14 @@ end
 end
 
 @testset "Renewable profile features" begin
-    # RTS-GMLC area 1 wind: one column per unit, one row per hour of 2020 (8784 h).
+    # Every RTS-GMLC renewable group: one column per unit, one row per hour of 2020.
     sys = build_system(PSISystems, "RTS_GMLC_DA_sys_noForecast"; skip_serialization = true)
     groups = PSC.group_devices(PSY.get_components(PSC.RenewableDevice, sys), PSY.Area)
     for (key, devices) in groups
         matrix, time_stamps = PSC.feature_matrix(devices)
         @test size(matrix) == (8784, length(devices))
         @test first(time_stamps) == DateTime(2020, 1, 1)
-        # Per unit of capacity, except 212_CSP_1's, which reaches 1.96 (inconsistency 19).
+        # Per unit of capacity, except 212_CSP_1's, which reaches 1.96.
         @test all(matrix .>= 0.0)
         profile = PSY.get_time_series_values(
             PSY.SingleTimeSeries,

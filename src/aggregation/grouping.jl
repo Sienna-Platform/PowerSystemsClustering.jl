@@ -1,10 +1,6 @@
 """
-Group `devices` by the fixed keys units must share to be aggregated (decision 15): region at
-the aggregation level `aggregation` (by name), PSY type, prime mover and fuel. A key part the
-device type does not have (fuel for non-thermal units, prime mover for loads) is `nothing`.
-
-Returns a `Dict` from each key, a `NamedTuple` `(region, type, prime_mover, fuel)`, to its
-devices sorted by name.
+Group `devices` by `(region, type, prime_mover, fuel, available)`, the keys units must share
+to be aggregated. Parts a type lacks are `nothing`.
 """
 function group_devices(
     devices,
@@ -17,11 +13,14 @@ function group_devices(
             type = typeof(device),
             prime_mover = _prime_mover(device),
             fuel = _fuel(device),
+            available = PSY.get_available(device),
         )
         push!(get!(groups, key, PSY.StaticInjection[]), device)
     end
-    foreach(group -> sort!(group; by = PSY.get_name), values(groups))
-    return groups
+    # `identity.` narrows each vector to the group's device type.
+    return Dict(
+        key => sort!(identity.(group); by = PSY.get_name) for (key, group) in groups
+    )
 end
 
 _prime_mover(device::Union{PSY.Generator, PSY.Storage}) = PSY.get_prime_mover_type(device)

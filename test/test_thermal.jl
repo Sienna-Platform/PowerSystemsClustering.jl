@@ -1,6 +1,6 @@
 @testset "Existing thermal unit to one supply technology" begin
     sys = build_system(PSITestSystems, "c_sys5_re"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.ACBus)
 
     for device in PSY.get_components(PSY.ThermalStandard, sys)
         technology =
@@ -16,7 +16,7 @@
         @test PSIP.get_fuel(technology) == [PSY.get_fuel(device)]
         @test PSIP.get_financial_data(technology) === TECHNOLOGY_FINANCIAL_DATA
 
-        # The technology stands for the existing unit and no new builds of it.
+        # Existing unit, no new builds.
         @test !PSIP.is_new(technology)
         existing = only(IS.get_supplemental_attributes(PSIP.ExistingDevices, technology))
         @test PSIP.get_existing_devices(existing) == [name]
@@ -26,8 +26,7 @@
               (min = 0.0, max = max_active_power)
         # c_sys5_re units have no minimum output.
         @test PSIP.get_min_generation_fraction(technology) == 0.0
-        # Ramp and time limits are read from the fields: PSIP's unit-aware getters treat ramp
-        # limits as MW/min, not the documented fraction of capacity per hour.
+        # Read from the fields: PSIP's unit-aware ramp getter assumes MW/min.
         ramp_mw_per_minute = PSY.get_ramp_limits(device, u"MW/minute")
         time_limits = PSY.get_time_limits(device)
         if isnothing(ramp_mw_per_minute)
@@ -66,7 +65,7 @@ end
     @test PSY.get_fixed(costs) == 0.0
 
     # The technology carries the converted costs.
-    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.ACBus)
     technology =
         PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)
     stored = PSY.get_variable_operation_cost(PSIP.get_operation_costs(technology, IS.NU))
@@ -98,7 +97,7 @@ end
     end
 
     # RTS-GMLC units have minimum outputs: 322_CT_6 runs between 22 and 55 MW.
-    portfolio_one = PSC.initialize_portfolio(sys, PSY.Area; FINANCIAL_DATA...)
+    portfolio_one = new_portfolio(sys, PSY.Area)
     technology =
         PSC.add_existing_technology!(portfolio_one, device, TECHNOLOGY_FINANCIAL_DATA)
     @test PSIP.get_min_generation_fraction(technology) ≈ 22.0 / 55.0
@@ -107,7 +106,7 @@ end
     @test technology.time_limits == (up = 132.0, down = 132.0)
 
     # Every RTS-GMLC thermal unit converts, and the default keeps full-output fuel use.
-    portfolio = PSC.initialize_portfolio(sys, PSY.Area; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.Area)
     for device in PSY.get_components(PSY.ThermalStandard, sys)
         technology =
             PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)
@@ -122,7 +121,7 @@ end
     end
 end
 
-@testset "Thermal operating costs PSIN does not support" begin
+@testset "Thermal operating costs that are not supported" begin
     sys = build_system(PSITestSystems, "c_sys5_re"; skip_serialization = true)
     device = PSY.get_component(PSY.ThermalStandard, sys, "Solitude")
 
@@ -133,7 +132,8 @@ end
         shut_down = 0.0,
     )
     PSY.set_operation_cost!(device, per_unit)
-    @test_throws ArgumentError PSC.thermal_operation_costs(
+    # Only curves in natural units (MW) have a conversion.
+    @test_throws MethodError PSC.thermal_operation_costs(
         device,
         PSC.AverageRate(),
         :hot,
@@ -168,14 +168,15 @@ end
         shut_down = 0.0,
     )
     PSY.set_operation_cost!(device, fuel_price_series)
-    @test_throws ArgumentError PSC.thermal_operation_costs(device, PSC.AverageRate(), :hot)
+    # A time series fuel price cannot be carried into the linear fuel curve.
+    @test_throws MethodError PSC.thermal_operation_costs(device, PSC.AverageRate(), :hot)
 end
 
 @testset "Existing ThermalMultiStart units" begin
-    # c_sys5_pglib has two ThermalMultiStart units with piecewise cost curves starting at
-    # 0 $/h at minimum output, the online cost in `fixed`, and start-up costs by stage.
+    # c_sys5_pglib: two ThermalMultiStart units with the no-load cost in `fixed` and start-up
+    # costs by stage.
     sys = build_system(PSITestSystems, "c_sys5_pglib"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.ACBus)
     for device in PSY.get_components(PSY.ThermalMultiStart, sys)
         technology =
             PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)
@@ -215,8 +216,7 @@ end
         PSC.thermal_operation_costs(steam, PSC.AverageRate(), :cold),
     ) ≈ 703.76 / 12.0
 
-    # 101_CT_1 has a single start type: warm and cold hold 1e8 placeholders, so every stage
-    # choice uses its hot start-up cost of 51.75 over 20 MW.
+    # 101_CT_1 has one start type, so every stage gives its hot cost: 51.75 over 20 MW.
     turbine = PSY.get_component(PSY.ThermalMultiStart, sys, "101_CT_1")
     for stage in (:hot, :warm, :cold)
         costs = PSC.thermal_operation_costs(turbine, PSC.AverageRate(), stage)
@@ -227,7 +227,7 @@ end
 
 @testset "Thermal start-up fuel" begin
     sys = build_system(PSITestSystems, "c_sys5_re"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.ACBus)
     # Solitude (520 MW) with a fuel curve burning 52 MMBtu per start: 0.1 MMBtu per MW.
     device = PSY.get_component(PSY.ThermalStandard, sys, "Solitude")
     fuel_cost = PSY.ThermalGenerationCost(;

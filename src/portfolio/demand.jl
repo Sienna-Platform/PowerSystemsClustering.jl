@@ -2,10 +2,8 @@
 const LoadDevice = Union{PSY.PowerLoad, PSY.StandardLoad}
 
 """
-Make a `PSIP.DemandRequirement` for the existing load `device`, in its region at the
-aggregation level `aggregation`, keeping its conformity. PSIP derives the peak demand from the
-device; the demand profile is added with the representative periods. Loads carry no financial
-data, so `financial_data` is unused.
+Make a `PSIP.DemandRequirement` for the existing load `device`. PSIP derives its peak demand
+from the device. `financial_data` is unused.
 """
 function make_technology(
     device::T,

@@ -1,7 +1,7 @@
 @testset "Existing HydroDispatch unit from a cost curve" begin
     # c_sys5_hy: one 600 MW unit with a zero linear cost curve and no ramp or time limits.
     sys = build_system(PSITestSystems, "c_sys5_hy"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.ACBus)
     device = only(PSY.get_components(PSY.HydroDispatch, sys))
     technology = PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)
 
@@ -23,7 +23,7 @@ end
     # RTS-GMLC 201_HYDRO_4: 0-50 MW, ramps 50 MW/min, fuel curve of 3.412 MMBtu/MWh at a zero
     # fuel price.
     sys = build_system(PSISystems, "RTS_GMLC_DA_sys_noForecast"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.Area; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.Area)
     device = PSY.get_component(PSY.HydroDispatch, sys, "201_HYDRO_4")
     technology = PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)
 

@@ -2,18 +2,30 @@
 const ThermalDevice = Union{PSY.ThermalStandard, PSY.ThermalMultiStart}
 
 """
-Make a `PSIP.SupplyTechnology` for the existing thermal unit `device`, in its region at the
-aggregation level `aggregation`, with its operating limits and the costs from
-[`thermal_operation_costs`](@ref).
+Make a `PSIP.SupplyTechnology` for the existing thermal unit `device`.
 """
 function make_technology(
     device::T,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
     financial_data::PSIP.TechnologyFinancialData;
-    linearization::CurveLinearization = AverageRate(),
-    start_up_stage::Symbol = :hot,
+    kwargs...,
 ) where {T <: ThermalDevice}
     return PSIP.SupplyTechnology{T}(;
+        technology_fields(device, aggregation, financial_data; kwargs...)...,
+    )
+end
+
+"""
+Fields of the technology for the thermal unit `device`, as a `NamedTuple`.
+"""
+function technology_fields(
+    device::ThermalDevice,
+    aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
+    financial_data::PSIP.TechnologyFinancialData;
+    linearization::CurveLinearization = AverageRate(),
+    start_up_stage::Symbol = :hot,
+)
+    return (
         _existing_generator_fields(device, aggregation, financial_data)...,
         _operating_limits(device)...,
         fuel = [PSY.get_fuel(device)],
@@ -25,25 +37,16 @@ function make_technology(
     )
 end
 
-# Start-up fuel per MW of maximum output; only fuel curves have start-up fuel.
+# Start-up fuel per MW; only fuel curves have it.
 _start_fuel_per_mw(curve::IS.FuelCurve, max_mw::Float64) =
     IS.get_proportional_term(IS.get_startup_fuel_offtake(curve)) / max_mw
 _start_fuel_per_mw(::IS.ProductionVariableCostCurve, ::Float64) = 0.0
 
 """
-Operating costs of the thermal unit `device` as PSIN reads them:
-
-  - the cost or fuel curve linearized over the active power limits by `linearization`
-    ([`AverageRate`](@ref) for dispatch, [`IncrementalRate`](@ref) for commitment), keeping
-    its fuel price and VOM;
-  - PowerSystems' `fixed` cost, paid per hour online, added to a cost curve. The result's
-    `fixed` is zero because PSIN reads that field as fixed O&M;
-  - start-up costs by stage reduced to `start_up_stage` (`:hot`, `:warm` or `:cold`), or to
-    the costliest stage the unit uses;
-  - start-up and shut-down costs and start-up fuel per MW of maximum active power.
-
-Throws `ArgumentError` for curves not in MW, time series fuel prices, and a nonzero `fixed`
-cost with a fuel curve.
+Operating costs of the thermal unit `device`: its curve linearized by `linearization` with
+PowerSystems' `fixed` cost added, start-up costs by stage reduced to `start_up_stage` (`:hot`,
+`:warm` or `:cold`), and start-up and shut-down costs per MW. The result's `fixed` is zero
+because PSIN reads that field as fixed O&M.
 """
 function thermal_operation_costs(
     device::ThermalDevice,
@@ -82,6 +85,6 @@ function _single_start_up_cost(
     return start_up[min(stage_index, _start_types(device))]
 end
 
-# Start-up stages a unit uses; the unused stages of a ThermalMultiStart hold placeholders.
+# Start-up stages a unit uses; unused stages hold placeholder costs.
 _start_types(::PSY.ThermalStandard) = 3
 _start_types(device::PSY.ThermalMultiStart) = PSY.get_start_types(device)

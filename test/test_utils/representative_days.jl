@@ -1,7 +1,6 @@
-# Stand-in for the Phase 4 back end, for testing that portfolios run in PSIN: gives each
-# renewable, HydroDispatch and PowerLoad technology its device's `max_active_power` profile on
-# the hand-picked `days`, re-stamped to `model_year`, as one series per day named and tagged as
-# PSIN reads them. Capacity factors stay per unit of capacity; demand is in MW.
+# Attach each renewable, HydroDispatch and PowerLoad technology's profile on the hand-picked
+# `days`, re-stamped to `model_year`, as the per-day series PSIN reads (capacity factors per
+# unit, demand in MW).
 function add_day_series!(
     portfolio::PSIP.Portfolio,
     sys::PSY.System,

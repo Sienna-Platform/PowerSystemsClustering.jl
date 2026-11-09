@@ -2,10 +2,8 @@
 const RenewableDevice = Union{PSY.RenewableDispatch, PSY.RenewableNonDispatch}
 
 """
-Make a `PSIP.SupplyTechnology` for the existing renewable unit `device`, in its region at the
-aggregation level `aggregation`, with the costs from [`renewable_operation_costs`](@ref).
-Capacity is the maximum active power (rating × power factor); there are no minimum up and down
-times. The capacity factor profile is added with the representative periods.
+Make a `PSIP.SupplyTechnology` for the existing renewable unit `device`. Capacity is rating ×
+power factor.
 """
 function make_technology(
     device::T,
@@ -20,11 +18,8 @@ function make_technology(
 end
 
 """
-Operating costs of the renewable unit `device` as PSIN reads them: the variable and
-curtailment cost curves linearized at maximum output, with PowerSystems' `fixed` cost (per hour
-online) added to the variable cost. A `RenewableNonDispatch` has no costs.
-
-Throws `ArgumentError` for curves not in MW.
+Operating costs of the renewable unit `device`: variable and curtailment costs linearized at
+maximum output. A `RenewableNonDispatch` has none.
 """
 function renewable_operation_costs(device::PSY.RenewableDispatch)
     op_cost = PSY.get_operation_cost(device)

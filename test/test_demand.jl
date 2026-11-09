@@ -1,6 +1,6 @@
 @testset "Existing PowerLoad units to demand requirements" begin
     sys = build_system(PSITestSystems, "c_sys5_re"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.ACBus)
     for device in PSY.get_components(PSY.PowerLoad, sys)
         technology =
             PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)
@@ -17,7 +17,7 @@ end
 @testset "Existing StandardLoad units to demand requirements" begin
     # tamu_ACTIVSg2000 has StandardLoads; check a sample at the area level.
     sys = build_system(PSYTestSystems, "tamu_ACTIVSg2000_sys"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.Area; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.Area)
     for device in first(collect(PSY.get_components(PSY.StandardLoad, sys)), 20)
         technology =
             PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)

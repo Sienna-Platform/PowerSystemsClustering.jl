@@ -1,8 +1,5 @@
 """
-Region of `device` at the aggregation level `aggregation`: its bus, or its bus's load zone or
-area.
-
-Throws `ArgumentError` if the bus has no region at that level.
+Region of `device` at the level `aggregation`: its bus, or its bus's load zone or area.
 """
 get_device_region(::Type{PSY.ACBus}, device::PSY.StaticInjection) = PSY.get_bus(device)
 

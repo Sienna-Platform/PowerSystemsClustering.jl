@@ -1,8 +1,6 @@
 """
-Add a technology for the existing `device` to `portfolio`, with a `PSIP.ExistingDevices`
-attribute naming the device so PSIP counts its capacity as existing. The technology comes
-from the [`make_technology`](@ref) method for the device's type, which receives the keyword
-arguments. Returns the technology.
+Add the technology [`make_technology`](@ref) makes for `device` to `portfolio`, with a
+`PSIP.ExistingDevices` attribute naming the device. Returns the technology.
 """
 function add_existing_technology!(
     portfolio::PSIP.Portfolio,
@@ -17,7 +15,7 @@ function add_existing_technology!(
     return technology
 end
 
-# Fields every existing technology shares: identity, region and financial data.
+# Fields every technology shares.
 function _existing_device_fields(
     device::T,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
@@ -33,8 +31,7 @@ function _existing_device_fields(
     )
 end
 
-# Shared fields of an existing generator technology, with a capacity equal to the device's
-# maximum active power, so the technology is the existing unit with no new builds.
+# Shared fields plus a capacity of the device's maximum active power (no new builds).
 _existing_generator_fields(
     device::PSY.Generator,
     aggregation::Type{<:Union{PSY.ACBus, PSY.AggregationTopology}},
@@ -44,9 +41,8 @@ _existing_generator_fields(
     capacity_limits = (min = 0.0, max = PSY.get_max_active_power(device, u"MW")),
 )
 
-# Operating limits of a generator with active power limits: minimum generation as a fraction of
-# maximum output, ramp limits as fractions of it per hour (`(1.0, 1.0)` if none), and minimum up
-# and down times in minutes (`(0.0, 0.0)` if none).
+# Minimum generation and ramp limits as fractions of capacity (ramps per hour), and minimum up
+# and down times in minutes.
 function _operating_limits(device::PSY.Generator)
     limits = PSY.get_active_power_limits(device, u"MW")
     return (

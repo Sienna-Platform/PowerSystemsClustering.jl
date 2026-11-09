@@ -1,8 +1,5 @@
 """
-Make a `PSIP.SupplyTechnology` for the existing hydro unit `device`, in its region at the
-aggregation level `aggregation`, with its operating limits and the costs from
-[`hydro_operation_costs`](@ref). The capacity factor profile or energy budget is added with
-the representative periods.
+Make a `PSIP.SupplyTechnology` for the existing hydro unit `device`.
 """
 function make_technology(
     device::PSY.HydroDispatch,
@@ -17,13 +14,9 @@ function make_technology(
 end
 
 """
-Operating costs of the hydro unit `device` as PSIN reads them: the cost or fuel curve
-linearized at maximum output, with PowerSystems' `fixed` cost (per hour online) added to a cost
-curve. A fuel curve is priced into a cost curve (heat rate × fuel price), since hydro burns no
-fuel and PSIP converts fuel curves only in thermal costs.
-
-Throws `ArgumentError` for curves not in MW, time series fuel prices, and a nonzero `fixed`
-cost with a fuel curve.
+Operating costs of the hydro unit `device`: its curve linearized at maximum output. A fuel
+curve is priced into a cost curve (heat rate × fuel price), since PSIP only converts fuel
+curves in thermal costs.
 """
 function hydro_operation_costs(device::PSY.HydroDispatch)
     op_cost = PSY.get_operation_cost(device)

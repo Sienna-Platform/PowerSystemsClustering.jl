@@ -1,5 +1,5 @@
-# Fuel curve shared by the tests: 300 MMBtu/h at 20 MW and 600 MMBtu/h at 50 MW, so 12 MMBtu/MWh
-# on average at full output, 10 MMBtu/MWh incremental and 100 MMBtu/h at zero output.
+# 300 MMBtu/h at 20 MW, 600 at 50 MW: 12 MMBtu/MWh average at full output, 10 incremental,
+# 100 MMBtu/h at zero output.
 const POINTS = IS.PiecewisePointCurve([(x = 20.0, y = 300.0), (x = 50.0, y = 600.0)])
 const LIMITS = (min = 20.0, max = 50.0)
 

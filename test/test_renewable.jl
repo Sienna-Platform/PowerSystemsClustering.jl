@@ -1,6 +1,6 @@
 @testset "Existing renewable units to supply technologies" begin
     sys = build_system(PSITestSystems, "c_sys5_re"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.ACBus; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.ACBus)
     for device in PSY.get_components(PSY.RenewableDispatch, sys)
         technology =
             PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)
@@ -25,7 +25,7 @@ end
 @testset "Existing RenewableNonDispatch units" begin
     # RTS-GMLC has rooftop PV as RenewableNonDispatch, which has no operating cost.
     sys = build_system(PSISystems, "RTS_GMLC_DA_sys_noForecast"; skip_serialization = true)
-    portfolio = PSC.initialize_portfolio(sys, PSY.Area; FINANCIAL_DATA...)
+    portfolio = new_portfolio(sys, PSY.Area)
     for device in PSY.get_components(PSC.RenewableDevice, sys)
         technology =
             PSC.add_existing_technology!(portfolio, device, TECHNOLOGY_FINANCIAL_DATA)

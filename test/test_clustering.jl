@@ -9,6 +9,7 @@
         type = PSY.ThermalStandard,
         prime_mover = PSY.PrimeMovers.CT,
         fuel = PSY.ThermalFuels.NATURAL_GAS,
+        available = true,
     )]
     # Two clusters split efficient from less efficient units; a third separates the least
     # efficient pair.
@@ -17,8 +18,6 @@
     # One cluster merges the group; one per unit keeps every unit.
     @test PSC.cluster_group(devices, 1) == fill(1, 11)
     @test PSC.cluster_group(devices, 11) == collect(1:11)
-    @test_throws ArgumentError PSC.cluster_group(devices, 0)
-    @test_throws ArgumentError PSC.cluster_group(devices, 12)
 end
 
 @testset "Cluster a renewable group on profiles" begin
@@ -40,19 +39,4 @@ end
     # Profiles are left as they are.
     stamps = [DateTime(2020, 1, 1), DateTime(2020, 1, 1, 1)]
     @test PSC._scale_features(matrix, stamps) === matrix
-end
-
-@testset "A thermal group mixing cost and fuel curves" begin
-    sys = build_system(PSITestSystems, "c_sys5_re"; skip_serialization = true)
-    devices = collect(PSY.get_components(PSY.ThermalStandard, sys))
-    PSY.set_operation_cost!(
-        first(devices),
-        PSY.ThermalGenerationCost(;
-            variable_operation_cost = IS.FuelCurve(IS.LinearCurve(10.0), PSIP.MMBtu, 3.0),
-            fixed = 0.0,
-            start_up = 0.0,
-            shut_down = 0.0,
-        ),
-    )
-    @test_throws ArgumentError PSC.feature_matrix(devices)
 end

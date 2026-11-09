@@ -1,38 +1,86 @@
-# Rules combining an attribute's values across the units of a cluster into the value of the
-# aggregated technology (decision 17). Each takes the units' values and their capacities, so a
-# rule can be swapped for another with the same signature. A `NamedTuple` value (e.g. ramp
-# limits `(up, down)`) is combined field by field.
+# Rules merging a field across a cluster's units: `(values, capacities) -> value`.
 
 """
-Capacity-weighted average of `values`, the rule for per-MW and fractional attributes (average
-rates, minimum generation fraction, ramp rates, start-up costs per MW, efficiencies).
-
-It is exact for the cluster: weighting each unit's per-MW value by its capacity gives the
-cluster's total over its total capacity, e.g. heat rates weighted by capacity give the
-cluster's fuel use per MWh at full output.
+Capacity-weighted average, for per-MW and fractional values. Exact for the cluster: e.g. it
+gives the cluster's fuel use per MWh at full output.
 """
 capacity_weighted(values::AbstractVector{Float64}, capacities::AbstractVector{Float64}) =
     sum(values .* capacities) / sum(capacities)
 
 """
-Largest of `values`, the rule for minimum up and down times: the aggregated technology is as
-restrictive as its most restrictive unit.
+Sum, for capacities.
+"""
+total(values::AbstractVector{Float64}, ::AbstractVector{Float64}) = sum(values)
+
+"""
+Largest value, for minimum up and down times.
 """
 largest(values::AbstractVector{Float64}, ::AbstractVector{Float64}) = maximum(values)
 
-capacity_weighted(
-    values::AbstractVector{<:NamedTuple},
+"""
+Merge thermal operating costs: every per-MW term capacity-weighted, the fuel price weighted by
+fuel use so the full-output fuel cost is exact.
+"""
+function merge_costs(
+    costs::AbstractVector{PSY.ThermalGenerationCost},
+    capacities::AbstractVector{Float64},
+)
+    return PSY.ThermalGenerationCost(;
+        variable_operation_cost = _merge_curves(
+            [PSY.get_variable_operation_cost(cost) for cost in costs],
+            capacities,
+        ),
+        fixed = 0.0,
+        start_up = capacity_weighted(PSY.get_start_up.(costs), capacities),
+        shut_down = capacity_weighted(PSY.get_shut_down.(costs), capacities),
+    )
+end
+
+function _merge_curves(
+    curves::AbstractVector{<:IS.CostCurve},
+    capacities::AbstractVector{Float64},
+)
+    return IS.CostCurve(
+        _merge_linear(IS.get_value_curve.(curves), capacities),
+        PSY.NaturalUnit(),
+        _merge_linear(IS.get_vom_cost.(curves), capacities),
+    )
+end
+
+function _merge_curves(
+    curves::AbstractVector{<:IS.FuelCurve},
+    capacities::AbstractVector{Float64},
+)
+    heat_rates = IS.get_value_curve.(curves)
+    fuel_use = IS.get_proportional_term.(heat_rates) .* capacities
+    return IS.FuelCurve(
+        _merge_linear(heat_rates, capacities),
+        PSY.NaturalUnit(),
+        IS.get_fuel_units(first(curves)),
+        capacity_weighted(IS.get_fuel_cost.(curves), fuel_use),
+        _merge_linear(IS.get_startup_fuel_offtake.(curves), capacities),
+        _merge_linear(IS.get_vom_cost.(curves), capacities),
+    )
+end
+
+_merge_linear(
+    curves::AbstractVector{<:IS.LinearCurve},
     capacities::AbstractVector{Float64},
 ) =
-    _by_field(capacity_weighted, values, capacities)
-largest(values::AbstractVector{<:NamedTuple}, capacities::AbstractVector{Float64}) =
-    _by_field(largest, values, capacities)
+    IS.LinearCurve(
+        capacity_weighted(IS.get_proportional_term.(curves), capacities),
+        capacity_weighted(IS.get_constant_term.(curves), capacities),
+    )
 
-# Apply `rule` to each field of the units' named tuples.
-function _by_field(
-    rule::Function,
-    values::AbstractVector{<:NamedTuple{K}},
-    capacities::AbstractVector{Float64},
-) where {K}
-    return NamedTuple{K}(Tuple(rule([value[k] for value in values], capacities) for k in K))
-end
+"""
+Rules for merging thermal technology fields. Override one with
+`merge(THERMAL_RULES, (time_limits = my_rule,))`.
+"""
+const THERMAL_RULES = (
+    capacity_limits = total,
+    min_generation_fraction = capacity_weighted,
+    ramp_limits = capacity_weighted,
+    time_limits = largest,
+    start_fuel_mmbtu_per_mw = capacity_weighted,
+    operation_costs = merge_costs,
+)

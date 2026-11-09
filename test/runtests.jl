@@ -10,6 +10,7 @@ using PowerSystemsClustering
 const PSC = PowerSystemsClustering
 using PowerSystemCaseBuilder
 import HiGHS
+import DataFrames
 import JuMP
 import TimeSeries
 

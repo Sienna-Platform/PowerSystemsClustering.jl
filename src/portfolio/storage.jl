@@ -1,11 +1,6 @@
 """
-Make a `PSIP.StorageTechnology` for the existing storage unit `device`, in its region at the
-aggregation level `aggregation`.
-
-Charge, discharge and energy capacities are the device's maximum input and output active power
-and its storage capacity (MWh), so the technology is the existing unit with no new builds. The
-minimum discharge is a fraction of the maximum output, self-discharge per minute becomes losses
-per hour, and costs come from [`storage_operation_costs`](@ref).
+Make a `PSIP.StorageTechnology` for the existing storage unit `device`. Charge, discharge and
+energy capacities are its maximum input power, maximum output power and storage capacity.
 """
 function make_technology(
     device::PSY.EnergyReservoirStorage,
@@ -28,32 +23,20 @@ function make_technology(
 end
 
 """
-Operating costs of the storage unit `device`: the charge and discharge cost curves linearized
-at maximum input or output power, start-up and shut-down costs per MW of maximum output, and
-the energy shortage and surplus costs. `fixed` is zero, because PSIN reads that field as fixed
-O&M.
-
-Throws `ArgumentError` for curves not in MW.
+Operating costs of the storage unit `device`: charge and discharge costs linearized at maximum
+power, start-up and shut-down costs per MW of maximum output.
 """
 function storage_operation_costs(device::PSY.EnergyReservoirStorage)
     op_cost = PSY.get_operation_cost(device)
+    max_input_mw = PSY.get_input_active_power_limits(device, u"MW").max
     max_output_mw = PSY.get_output_active_power_limits(device, u"MW").max
-    linear(curve, limits) =
-        _linear_variable_cost(
-            curve,
-            AverageRate(),
-            (min = 0.0, max = limits.max),
-            0.0,
-            device,
-        )
+    linear(curve, max_mw) =
+        _linear_variable_cost(curve, AverageRate(), (min = 0.0, max = max_mw), 0.0, device)
     return PSY.StorageCost(;
-        charge_variable_cost = linear(
-            PSY.get_charge_variable_cost(op_cost),
-            PSY.get_input_active_power_limits(device, u"MW"),
-        ),
+        charge_variable_cost = linear(PSY.get_charge_variable_cost(op_cost), max_input_mw),
         discharge_variable_cost = linear(
             PSY.get_discharge_variable_cost(op_cost),
-            PSY.get_output_active_power_limits(device, u"MW"),
+            max_output_mw,
         ),
         start_up = _per_mw(PSY.get_start_up(op_cost), max_output_mw),
         shut_down = PSY.get_shut_down(op_cost) / max_output_mw,
@@ -62,6 +45,6 @@ function storage_operation_costs(device::PSY.EnergyReservoirStorage)
     )
 end
 
-# A start-up cost, single or per operation mode (charge, discharge), per MW.
+# Start-up cost per MW, single or per mode (charge, discharge).
 _per_mw(cost::Float64, mw::Float64) = cost / mw
 _per_mw(cost::PSY.STORAGE_OPERATION_MODES, mw::Float64) = map(c -> c / mw, cost)

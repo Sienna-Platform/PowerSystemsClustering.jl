@@ -11,6 +11,7 @@
         type = PSY.ThermalStandard,
         prime_mover = PSY.PrimeMovers.CC,
         fuel = PSY.ThermalFuels.NATURAL_GAS,
+        available = true,
     )
     @test PSY.get_name.(groups[area_1_gas_cc]) == ["107_CC_1", "118_CC_1"]
 
